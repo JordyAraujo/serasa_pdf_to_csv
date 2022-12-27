@@ -1,4 +1,4 @@
-import PyPDF2
+import os
 import re
 
 def clean_page(page_obj, qtd_pages):
@@ -71,32 +71,37 @@ def clean_page(page_obj, qtd_pages):
     text = text.replace('  ', ' ')
     return text
 
-all_lines = ''
-pdf_file_obj = open("input1.pdf", "rb")
-pdf_reader = PyPDF2.PdfFileReader(pdf_file_obj, strict=False)
-qtd_pages = pdf_reader.numPages
-for page_num in range(qtd_pages):
-    page_obj = pdf_reader.getPage(page_num)
-    all_lines += clean_page(page_obj, qtd_pages)
 
-pdf_file_obj.close()
+def transcript_and_clean_pages(pdf_reader):
+    all_lines = ''
+    qtd_pages = pdf_reader.numPages
+    for page_num in range(qtd_pages):
+        page_obj = pdf_reader.getPage(page_num)
+        all_lines += clean_page(page_obj, qtd_pages)
 
-all_lines = all_lines.replace('  ', ' ')
-all_lines = all_lines.split(' ')
+    all_lines = all_lines.replace('  ', ' ')
 
-all_lines.pop(0)
+    return all_lines
 
-for i in range(2):
-    all_lines.pop(-1)
 
-lines = [all_lines[x:x+5] for x in range(0, len(all_lines), 5)]
+def list_of_lines(word_by_word):
+    word_by_word.pop(0)
 
-csv = open('output1.csv', 'w')
-csv.write('CODIGO;DATALANC;DATAVENC;CNPJ;VALOR\n')
-for line in lines:
-    csv.write(f'{line[4]};')
-    csv.write(f'{line[0]};')
-    csv.write(f'{line[1]};')
-    csv.write(f'{line[2]};')
-    csv.write(f'{line[3]}\n')
-csv.close()
+    for i in range(2):
+        word_by_word.pop(-1)
+
+    lines = [word_by_word[x:x+5] for x in range(0, len(word_by_word), 5)]
+
+    return lines
+
+
+def create_csv(final_list, filename, path):
+    csv = open(os.path.join(path, filename), 'w')
+    csv.write('CODIGO;DATALANC;DATAVENC;CNPJ;VALOR\n')
+    for line in final_list:
+        csv.write(f'{line[4]};')
+        csv.write(f'{line[0]};')
+        csv.write(f'{line[1]};')
+        csv.write(f'{line[2]};')
+        csv.write(f'{line[3]}\n')
+    csv.close()
