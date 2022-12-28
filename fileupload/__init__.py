@@ -4,6 +4,9 @@ from flask import Flask
 
 from .routes import upload
 
+CNPJ = ''
+COMPANY_NAME = ''
+
 
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
@@ -19,6 +22,9 @@ def create_app():
     CSV_FOLDER = os.path.join(app.instance_path, "csv")
     app.config['CSV_FOLDER'] = CSV_FOLDER
 
+    app.config['CNPJ'] = CNPJ
+    app.config['COMPANY_NAME'] = 'CDA'
+
     try:
         os.makedirs(app.instance_path)
         os.makedirs(UPLOAD_FOLDER)
@@ -29,3 +35,6 @@ def create_app():
     app.register_blueprint(upload.bp)
 
     return app
+
+
+app = create_app()

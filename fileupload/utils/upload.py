@@ -1,6 +1,8 @@
 import os
 import re
 
+from flask import current_app as app
+
 def clean_page(page_obj, qtd_pages):
     text = page_obj.extractText()
     text = text.replace('\n', ' ')
@@ -34,8 +36,8 @@ def clean_page(page_obj, qtd_pages):
     text = text.replace('PARTICIPANTE', ' ')
     text = text.replace('CONFIDENCIAL', ' ')
     text = text.replace('PARA:', ' ')
-    text = text.replace('02.275.901/0001-11', ' ')
-    text = text.replace('CDA', ' ')
+    text = text.replace(app.config['CNPJ'], ' ')
+    text = text.replace(app.config['COMPANY_NAME'], ' ')
     text = text.replace('Período :', ' ')
     text = text.replace('DEVEDOR', ' ')
     text = text.replace('DATA', ' ')
