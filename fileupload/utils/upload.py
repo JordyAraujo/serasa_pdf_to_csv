@@ -1,103 +1,121 @@
-import os
 import re
+import os
+import pandas as pd
+from PyPDF2 import PdfReader
 
-from flask import current_app as app
-
-def clean_page(page_obj, qtd_pages):
-    text = page_obj.extractText()
-    text = text.replace('\n', ' ')
-
-    for i in range(1, qtd_pages + 1):
-        text = text.replace(f' {i} of {qtd_pages} ', ' ')
+def clean_text(text):
     
-    for i in range(1, qtd_pages + 1):
-        text = text.replace(f'{i} of {qtd_pages} ', ' ')
+    stop_words = [
+        r"PEFIN - CONSULTA DE PENDÊNCIAS FINANCEIRAS POR PARTICIPANTE",
+        r"https://sitenet.serasa.com.br/novosisconvem/SisconvemPrincipal",
+        r"02.275.901/0001-11",
+        r"SERASA",
+        r"Versão.+",
+        r"\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}",
+        r"\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}",
+        r"\d of .+\d:\d{2}",
+        r"Período.+\d"
+    ]
     
-    for i in range(1, qtd_pages + 1):
-        text = text.replace(f'{i} of {qtd_pages}', ' ')
+    for word in stop_words:
+        text = re.sub(word, "", text)
     
-    url = 'https://sitenet.serasa.com.br/novosisconvem/SisconvemPrincipal'
-    text = text.replace(f'{url}', ' ')
-    
-    regex = '[0-9][0-9]/[0-9][0-9]/[0-9][0-9][0-9][0-9] [0-9][0-9]:[0-9][0-9]'
-    text = re.sub(regex, ' ', text)
-    
-    regex2 = '[0-9][0-9]/[0-9][0-9]/[0-9][0-9][0-9][0-9] à [0-9][0-9]/[0-9][0-9]/[0-9][0-9][0-9][0-9]'
-    text = re.sub(regex2, ' ', text)
-
-    text = text.replace('Versão:', ' ')
-    text = text.replace('2.22.1.1', ' ')
-    text = text.replace('LOGOUT', ' ')
-    text = text.replace('PEFIN', ' ')
-    text = text.replace(' - ', ' ')
-    text = text.replace('CONSULTA', ' ')
-    text = text.replace('PENDÊNCIAS', ' ')
-    text = text.replace('FINANCEIRAS', ' ')
-    text = text.replace('PARTICIPANTE', ' ')
-    text = text.replace('CONFIDENCIAL', ' ')
-    text = text.replace('PARA:', ' ')
-    text = text.replace(app.config['CNPJ'], ' ')
-    text = text.replace(app.config['COMPANY_NAME'], ' ')
-    text = text.replace('Período :', ' ')
-    text = text.replace('DEVEDOR', ' ')
-    text = text.replace('DATA', ' ')
-    text = text.replace('RECEB.', ' ')
-    text = text.replace('ANOTAÇÃO', ' ')
-    text = text.replace('DOC.', ' ')
-    text = text.replace('VALOR', ' ')
-    text = text.replace('NATUREZA', ' ')
-    text = text.replace('PRINCIPAL', ' ')
-    text = text.replace('DP', ' ')
-    text = text.replace('-DUPLICATA', ' ')
-    text = text.replace('Nr.', ' ')
-    text = text.replace('Contrato:', ' ')
-    text = text.replace('Status:', ' ')
-    text = text.replace('INDISP.', ' ')
-    text = text.replace('CARTA', ' ')
-    text = text.replace('ENVIADA', ' ')
-    text = text.replace('R$', ' ')
-    text = text.replace('SERASA', ' ')
-    text = text.replace('SISCONVEM', ' ')
-    text = text.replace('DISPONIVEL', ' ')
-    text = text.replace('Qtde', ' ')
-    text = text.replace('Anotações', ' ')
-    text = text.replace(':', ' ')
-    text = text.replace('de', ' ')
-    text = text.replace('POR', ' ')
-    text = text.replace('DE', ' ')
-
-    text = text.replace('      ', ' ')
-    text = text.replace('     ', ' ')
-    text = text.replace('    ', ' ')
-    text = text.replace('   ', ' ')
-    text = text.replace('  ', ' ')
     return text
 
+def get_text_info(text):
+    """
+    This function only works based on the premise that the text is well structured, where each data is in the correct order.
+    Hopefully, the text is structured. For now...
+    """
+    
+    # regex to: value, cnpj, data_lanc, data_venc, codigo
+    value_pattern = r"(R\$ .+,\d\d)"
+    cnpj_pattern = r"\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}"
+    cpf_pattern = r"\d{3}\.\d{3}\.\d{3}-\d{2}"
+    data_pattern = r"\d{2}/\d{2}/\d{4}" # data_lanc (even values), data_venc (odd values)
+    codigo_pattern = r"\d{9}"
+    
+    df = pd.DataFrame(columns=["CODIGO", "DATALANC", "DATAVENC", "CNPJ", "VALOR"], index=[0])
+    
+    # temporary dict to control if the data was found in the line
+    find_data = {
+        "value": False,
+        "cnpj": False,
+        "cpf": False,
+        "data": False,
+        "codigo": False
+    }
+    
+    lines = text.split("\n")
+    
+    for line in lines:
+        # verify if line has value, cnpj, cpf, data and codigo
+        value_result = re.search(value_pattern, line)
+        cnpj_result = re.search(cnpj_pattern, line)
+        cpf_result= re.search(cpf_pattern, line)
+        data_result = re.findall(data_pattern, line)
+        codigo_result = re.search(codigo_pattern, line)
+        
+        # if line has value, cnpj, cpf, data and codigo, save in temporary variables to insert into dataframe
+        if value_result:
+            find_data['value'] = True
+            temp_value = value_result.group(0)
+        if cnpj_result:
+            find_data['cnpj'] = True
+            temp_cnpj = cnpj_result.group(0)
+        if cpf_result:
+            find_data['cpf'] = True
+            temp_cpf = cpf_result.group(0)
+        if data_result:
+            find_data['data'] = True
+            temp_data = data_result
+        if codigo_result:
+            find_data['codigo'] = True
+            temp_codigo = codigo_result.group(0)
+            
+        # if all data is found, insert into dataframe
+        if (find_data['value'] and (find_data['cnpj'] or find_data['cpf']) and find_data['data'] and find_data['codigo']):
+            temp = {
+                "CODIGO": temp_codigo,
+                "DATALANC": temp_data[0],
+                "DATAVENC": temp_data[1],
+                "CNPJ": temp_cnpj if find_data['cnpj'] else temp_cpf,
+                "VALOR": temp_value
+            }
+            
+            df = pd.concat([df, pd.DataFrame(temp, index=[0])])
+                
+            find_data = {
+                "value": False,
+                "cnpj": False,
+                "cpf": False,
+                "data": False,
+                "codigo": False
+            }
 
-def transcript_and_clean_pages(pdf_reader):
-    all_lines = ''
-    qtd_pages = pdf_reader.numPages
-    for page_num in range(qtd_pages):
-        page_obj = pdf_reader.getPage(page_num)
-        all_lines += clean_page(page_obj, qtd_pages)
+    #remove empty rows
+    df.dropna(inplace=True)
+    
+    return df
 
-    all_lines = all_lines.replace('  ', ' ')
-
-    return all_lines
-
-
-def list_of_lines(word_by_word):
-    word_by_word.pop(0)
-
-    for i in range(2):
-        word_by_word.pop(-1)
-
-    lines = [word_by_word[x:x+5] for x in range(0, len(word_by_word), 5)]
-
-    return lines
-
-
-def create_csv(final_list, filename, path):
+def create_csv(filename, path):
+    # Open PDF file and clean the text
+    
+    # technical artifice to find the file path
+    reader = PdfReader(os.path.join(path.replace("csv", "upload"), filename.replace("csv", "pdf")))
+    file_text = ""
+    for page in reader.pages:
+        file_text += page.extract_text()
+    
+    clean_file_text = clean_text(file_text)
+    
+    df = get_text_info(clean_file_text)
+    
+    # save dataframe to csv
+    df.to_csv(os.path.join(path, filename), index=False)
+    
+    
+def deprecated_create_csv(final_list, filename, path):
     csv = open(os.path.join(path, filename), 'w')
     csv.write('CODIGO;DATALANC;DATAVENC;CNPJ;VALOR\n')
     for line in final_list:
