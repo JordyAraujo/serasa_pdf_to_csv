@@ -13,7 +13,11 @@ def clean_text(text):
         r"Versão.+",
         r"\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}",
         r"\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}",
+        r"\d{2}\/\d{2}\/\d{4}\d{2}:\d{2}",
+        r"\d{2}\/\d{2}\/\d{4}\d{2}:\d{2}:\d{2}",
         r"\d of .+\d:\d{2}",
+        r"\d{2} of \d{2}",
+        r"\d of \d{2}",
         r"Período.+\d"
     ]
     
@@ -32,10 +36,10 @@ def get_text_info(text):
     value_pattern = r"(R\$ .+,\d\d)"
     cnpj_pattern = r"\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}"
     cpf_pattern = r"\d{3}\.\d{3}\.\d{3}-\d{2}"
-    data_pattern = r"\d{2}/\d{2}/\d{4}" # data_lanc (even values), data_venc (odd values)
+    data_pattern = r"\d{2}\/\d{2}\/\d{4}" # datainclu
     codigo_pattern = r"\d{9}"
     
-    df = pd.DataFrame(columns=["CODIGO", "DATALANC", "DATAVENC", "CNPJ", "VALOR"], index=[0])
+    df = pd.DataFrame(columns=["CODIGO", "DATAINCLU", "CNPJ", "VALOR"], index=[0])
     
     # temporary dict to control if the data was found in the line
     find_data = {
@@ -60,6 +64,7 @@ def get_text_info(text):
         if value_result:
             find_data['value'] = True
             temp_value = value_result.group(0)
+            temp_value = (temp_value.replace("R$ ", ""))
         if cnpj_result:
             find_data['cnpj'] = True
             temp_cnpj = cnpj_result.group(0)
@@ -77,8 +82,7 @@ def get_text_info(text):
         if (find_data['value'] and (find_data['cnpj'] or find_data['cpf']) and find_data['data'] and find_data['codigo']):
             temp = {
                 "CODIGO": temp_codigo,
-                "DATALANC": temp_data[0],
-                "DATAVENC": temp_data[1],
+                "DATAINCLU": temp_data,
                 "CNPJ": temp_cnpj if find_data['cnpj'] else temp_cpf,
                 "VALOR": temp_value
             }
@@ -112,7 +116,7 @@ def create_csv(filename, path):
     df = get_text_info(clean_file_text)
     
     # save dataframe to csv
-    df.to_csv(os.path.join(path, filename), index=False)
+    df.to_csv(os.path.join(path, filename), index=False, sep=';')
     
     
 def deprecated_create_csv(final_list, filename, path):
