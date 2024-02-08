@@ -41,12 +41,12 @@ def get_text_info(text):
     Hopefully, the text is structured. For now...
     """
     
-    # regex to: value, cnpj, data_lanc, data_venc, codigo
+    # regex to: value, cnpj, data_lanc, data_venc, code
     value_pattern = r"(R\$ .+,\d\d)"
     cnpj_pattern = r"\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}"
     cpf_pattern = r"\d{3}\.\d{3}\.\d{3}-\d{2}"
-    data_pattern = r"\d{2}\/\d{2}\/\d{4}" # datainclu
-    codigo_pattern = r"\d{9}"
+    data_pattern = r"\d{2}\/\d{2}\/\d{4}"
+    code_pattern = r"\d+\d"
     
     df = pd.DataFrame(columns=["CODIGO", "DATAINCLU", "CNPJ", "VALOR"], index=[0])
     
@@ -56,41 +56,55 @@ def get_text_info(text):
         "cnpj": False,
         "cpf": False,
         "data": False,
-        "codigo": False
+        "code": False
     }
     
     lines = text.split("\n")
     
     for line in lines:
-        # verify if line has value, cnpj, cpf, data and codigo
-        value_result = re.search(value_pattern, line)
-        cnpj_result = re.search(cnpj_pattern, line)
-        cpf_result= re.search(cpf_pattern, line)
-        data_result = re.findall(data_pattern, line)
-        codigo_result = re.search(codigo_pattern, line)
         
-        # if line has value, cnpj, cpf, data and codigo, save in temporary variables to insert into dataframe
+        # verify if line has value, cnpj, cpf, data and code.
+        # if line has value, cnpj, cpf, data and code, save 
+        # in temporary variables to insert into dataframe
+        
+        value_result = re.search(value_pattern, line)
         if value_result:
             find_data['value'] = True
             temp_value = value_result.group(0)
             temp_value = (temp_value.replace("R$ ", ""))
+            line = re.sub(value_pattern, "", line)
+            
+        cnpj_result = re.search(cnpj_pattern, line)
         if cnpj_result:
             find_data['cnpj'] = True
             temp_cnpj = cnpj_result.group(0)
+            line = re.sub(cnpj_pattern, "", line)
+        
+        cpf_result= re.search(cpf_pattern, line)
         if cpf_result:
             find_data['cpf'] = True
             temp_cpf = cpf_result.group(0)
+            line = re.sub(cpf_pattern, "", line)
+        
+        data_result = re.findall(data_pattern, line)
         if data_result:
             find_data['data'] = True
             temp_data = data_result
-        if codigo_result:
-            find_data['codigo'] = True
-            temp_codigo = codigo_result.group(0)
+            line = re.sub(data_pattern, "", line)
+
+        code_result = re.search(code_pattern, line)
+        if code_result:
+            find_data['code'] = True
+            temp_code = code_result.group(0)
+            temp_code = temp_code[-9:]
+            line = re.sub(code_pattern, "", line)
+
             
         # if all data is found, insert into dataframe
-        if (find_data['value'] and (find_data['cnpj'] or find_data['cpf']) and find_data['data'] and find_data['codigo']):
+        if (find_data['value'] and (find_data['cnpj'] or find_data['cpf']) and find_data['data'] and find_data['code']):
+            
             temp = {
-                "CODIGO": temp_codigo,
+                "CODIGO": temp_code,
                 "DATAINCLU": temp_data,
                 "CNPJ": temp_cnpj if find_data['cnpj'] else temp_cpf,
                 "VALOR": temp_value
@@ -103,7 +117,7 @@ def get_text_info(text):
                 "cnpj": False,
                 "cpf": False,
                 "data": False,
-                "codigo": False
+                "code": False
             }
 
     #remove empty rows
