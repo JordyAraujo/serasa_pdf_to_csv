@@ -15,14 +15,23 @@ def clean_text(text):
         r"\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}",
         r"\d{2}\/\d{2}\/\d{4}\d{2}:\d{2}",
         r"\d{2}\/\d{2}\/\d{4}\d{2}:\d{2}:\d{2}",
+        r"\d{2}\/\d{2}\/\d{4}  \d{2}:\d{2}:\d{2}",
         r"\d of .+\d:\d{2}",
         r"\d{2} of \d{2}",
         r"\d of \d{2}",
         r"Período.+\d"
     ]
     
+    
+    
     for word in stop_words:
         text = re.sub(word, "", text)
+    
+    # remove all \n inside cnpj or cpf
+    text = re.sub(r"\d{3}-(\n)\d{2}", lambda x: x.group().replace("\n", ""), text)
+
+    # remove all \n inside value
+    text = re.sub(r"R\$(\n)", "R$ ", text)
     
     return text
 
