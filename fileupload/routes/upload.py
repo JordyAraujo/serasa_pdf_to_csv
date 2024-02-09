@@ -13,9 +13,7 @@ from flask import (
 )
 
 from fileupload.utils.upload import (
-    transcript_and_clean_pages,
-    list_of_lines,
-    create_csv,
+    create_csv
 )
 
 from werkzeug.utils import secure_filename
@@ -43,18 +41,12 @@ def upload_file():
         if file and allowed_file(file.filename):
             pdf_filename = secure_filename(file.filename)
             filename = pdf_filename.split('.')[0]
+            
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], pdf_filename))
-
-            pdf_file_obj = open(os.path.join(app.config["UPLOAD_FOLDER"], pdf_filename), "rb")
-            pdf_reader = PyPDF2.PdfFileReader(pdf_file_obj, strict=False)
-            cleaned_str = transcript_and_clean_pages(pdf_reader)
-            pdf_file_obj.close()
 
             csv_filename = f"{filename}.csv"
 
-            final_list = list_of_lines(cleaned_str.split(" "))
             create_csv(
-                final_list,
                 csv_filename,
                 app.config["CSV_FOLDER"]
             )

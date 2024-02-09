@@ -4,8 +4,8 @@ from flask import Flask
 
 from .routes import upload
 
-CNPJ = ''
-COMPANY_NAME = ''
+CNPJ = ' 02.275.901/0001-11'
+COMPANY_NAME = 'CDA'
 
 
 def create_app():
