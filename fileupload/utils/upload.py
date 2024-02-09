@@ -92,11 +92,14 @@ def get_text_info(text):
             temp_data = data_result
             line = re.sub(data_pattern, "", line)
 
-        code_result = re.search(code_pattern, line)
+        code_result = re.findall(code_pattern, line)
         if code_result:
+            for code in code_result:
+                if len(code) >= 8:
+                    temp_code = code
+                    temp_code = temp_code[-9:]
             find_data['code'] = True
-            temp_code = code_result.group(0)
-            temp_code = temp_code[-9:]
+            
             line = re.sub(code_pattern, "", line)
 
             
